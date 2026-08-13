@@ -1,0 +1,4 @@
+ultralytics
+opencv-python
+tkinterdnd2
+Pillow
