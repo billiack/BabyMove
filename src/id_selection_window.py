@@ -96,8 +96,8 @@ class IDSelectionWindow(tk.Toplevel):
         self.output_dir = Path(output_dir)
 
         self.title("Sélection du bébé")
-        self.geometry("1100x750")
-        self.minsize(800, 600)
+        self.geometry("1100x800")
+        self.minsize(800, 800)
 
         self.cap = cv2.VideoCapture(str(self.video_path))
 
@@ -173,12 +173,12 @@ class IDSelectionWindow(tk.Toplevel):
 
         self.video_label = tk.Label(
             self,
-            bg="black"
+            bg="black",
+            width=900,
+            height=500
         )
 
         self.video_label.pack(
-            fill="both",
-            expand=True,
             padx=15,
             pady=10
         )
@@ -358,24 +358,12 @@ class IDSelectionWindow(tk.Toplevel):
 
         image = Image.fromarray(frame)
 
-        # Adapter l'image à la zone disponible
-        width = self.video_label.winfo_width()
-        height = self.video_label.winfo_height()
-
-        if width < 100:
-            width = 1000
-
-        if height < 100:
-            height = 500
-
         image = ImageOps.contain(
             image,
-            (width, height)
+            (900, 500)
         )
 
-        self.photo = ImageTk.PhotoImage(
-            image
-        )
+        self.photo = ImageTk.PhotoImage(image)
 
         self.video_label.config(
             image=self.photo
@@ -388,11 +376,7 @@ class IDSelectionWindow(tk.Toplevel):
             )
         )
 
-        # Évite de déclencher seek_frame
-        # pendant la mise à jour de la barre.
-        self.frame_scale.set(
-            frame_number
-        )
+        self.frame_scale.set(frame_number)
 
     def toggle_play(self):
 
