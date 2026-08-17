@@ -15,9 +15,9 @@ def open_folder(folder):
     if sys.platform == "win32":
         os.startfile(folder)
     elif sys.platform == "darwin":
-        subprocess.run(["open", str(folder)])
+        os.subprocess.run(["open", str(folder)])
     else:
-        subprocess.run(["xdg-open", str(folder)])
+        os.subprocess.run(["xdg-open", str(folder)])
 
 def get_ids_from_csv(csv_path):
     """Return all person IDs found in the CSV."""

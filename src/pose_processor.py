@@ -26,10 +26,16 @@ BODY_KEYPOINTS = {
 
 SUPPORTED_EXTENSIONS = (".mp4", ".avi", ".mov", ".mkv")
 
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = PROJECT_DIR / "models" / "yolo26x-pose.pt"
+RESULTS_DIR = PROJECT_DIR / "results"
+VIDEOS_DIR = PROJECT_DIR / "videos"
+
 def process_video(
     video_path,
-    results_dir="results",
-    model_path="models/yolo26x-pose.pt",
+    results_dir=RESULTS_DIR,
+    model_path=MODEL_PATH,
     progress_callback=None
 ):
     video_path = Path(video_path)
