@@ -1,12 +1,3 @@
-`requirements.txt`
-
-```txt
-ultralytics
-opencv-python
-tkinterdnd2
-Pillow
-```
-
 # Analyse de mouvements du nourrisson
 
 Application permettant d'analyser une vidéo avec YOLO26 Pose et de générer les positions des keypoints dans un fichier CSV.
@@ -54,10 +45,14 @@ L'application utilise actuellement YOLO26 Pose pour détecter les 17 keypoints h
 
 ## 5. Marqueurs ArUco
 
-Les scripts liés aux marqueurs ArUco nécessitent également OpenCV.
-
-Pour générer les marqueurs ArUco :
+Pour générer la planche de marqueurs ArUco avec une taille par défaut de 20 mm :
 
 ```sh
-python .\script\make_sheet.py
+python -m scripts.make_sheet
+```
+
+Pour choisir la taille des marqueurs en millimètres :
+
+```sh
+python -m scripts.make_sheet --size 10
 ```

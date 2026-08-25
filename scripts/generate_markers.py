@@ -9,14 +9,22 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 ARUCO_DICT = cv2.aruco.DICT_4X4_50
 
 MARKERS = {
+    # Gauche
     5: "Epaule gauche",
     7: "Coude gauche",
     9: "Poignet gauche",
     11: "Hanche gauche",
     13: "Genou gauche",
     15: "Cheville gauche",
-}
 
+    # Droite
+    6: "Epaule droite",
+    8: "Coude droit",
+    10: "Poignet droit",
+    12: "Hanche droite",
+    14: "Genou droit",
+    16: "Cheville droite",
+}
 SIZE = 500  # pixels
 
 

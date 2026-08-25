@@ -184,11 +184,32 @@ def generate_sheet(marker_size, DPI=300):
     )
 
 
+import argparse
+
+
 if __name__ == "__main__":
-    if not INPUT_DIR.exists() or not any(INPUT_DIR.glob("*.png")):
+
+    parser = argparse.ArgumentParser(
+        description="Génère une planche de marqueurs ArUco."
+    )
+
+    parser.add_argument(
+        "--size",
+        type=float,
+        default=20,
+        help="Taille d'un marqueur en mm (défaut : 20 mm)."
+    )
+
+    args = parser.parse_args()
+
+    if (
+        not INPUT_DIR.exists()
+        or not any(INPUT_DIR.glob("*.png"))
+        or len(list(INPUT_DIR.glob("*.png"))) < len(MARKERS)
+    ):
         generate_markers()
-    
+
     generate_sheet(
-        marker_size=30,
+        marker_size=args.size,
         DPI=DPI
     )
