@@ -7,18 +7,6 @@ from tkinter import messagebox
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
-def open_folder(folder):
-    """Open a folder with the operating system's file explorer."""
-
-    folder = Path(folder).resolve()
-
-    if sys.platform == "win32":
-        os.startfile(folder)
-    elif sys.platform == "darwin":
-        os.subprocess.run(["open", str(folder)])
-    else:
-        os.subprocess.run(["xdg-open", str(folder)])
-
 def get_ids_from_csv(csv_path):
     """Return all person IDs found in the CSV."""
 
@@ -86,7 +74,8 @@ class IDSelectionWindow(tk.Toplevel):
         parent,
         video_path,
         all_csv,
-        output_dir
+        output_dir,
+        on_validate=None
     ):
         super().__init__(parent)
 
@@ -98,6 +87,8 @@ class IDSelectionWindow(tk.Toplevel):
         self.title("Sélection du bébé")
         self.geometry("1100x800")
         self.minsize(800, 800)
+
+        self.on_validate = on_validate
 
         self.cap = cv2.VideoCapture(str(self.video_path))
 
@@ -140,6 +131,13 @@ class IDSelectionWindow(tk.Toplevel):
 
         self.show_frame(0)
 
+    def resize_video(self, event):
+
+        if self.current_frame is not None:
+            self.show_frame(
+                self.current_frame
+            )
+
     # --------------------------------------------------------
     # INTERFACE
     # --------------------------------------------------------
@@ -181,6 +179,11 @@ class IDSelectionWindow(tk.Toplevel):
         self.video_label.pack(
             padx=15,
             pady=10
+        )
+
+        self.video_label.bind(
+            "<Configure>",
+            self.resize_video
         )
 
         # ----------------------------------------------------
@@ -516,7 +519,6 @@ class IDSelectionWindow(tk.Toplevel):
             return
 
         self.playing = False
-
         self.cap.release()
 
         messagebox.showinfo(
@@ -530,11 +532,11 @@ class IDSelectionWindow(tk.Toplevel):
             parent=self
         )
 
-        open_folder(
-            self.output_dir
-        )
-
         self.destroy()
+
+        # Lance l'étape suivante uniquement après validation
+        if self.on_validate is not None:
+            self.on_validate()
 
     def close_window(self):
 

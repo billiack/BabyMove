@@ -7,6 +7,8 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from src.pose_processor import process_video, SUPPORTED_EXTENSIONS
 from src.id_selection_window import IDSelectionWindow
+from src.clean_data import clean_csv
+from src.visialize_clean import visualize
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -208,6 +210,23 @@ class PoseApp(TkinterDnD.Tk):
         if path:
             self.set_video(path)
 
+    def process_baby_data(self):
+
+        working_dir = RESULTS_DIR / self.video_path.stem
+
+        baby_csv_path = working_dir / f"baby_{self.video_path.stem}.csv"
+        clean_csv_path = working_dir / f"baby_{self.video_path.stem}_clean.csv"
+
+        clean_csv(
+            baby_csv_path,
+            clean_csv_path
+        )
+
+        visualize(
+            self.video_path.stem,
+            show_video=True
+        )
+
     def start_processing(self):
 
         if self.video_path is None:
@@ -215,6 +234,37 @@ class PoseApp(TkinterDnD.Tk):
 
         if self.processing:
             return
+
+        output_dir = RESULTS_DIR / self.video_path.stem
+        baby_csv = output_dir / f"baby_{self.video_path.stem}.csv"
+
+        if output_dir.exists():
+
+            answer = messagebox.askyesno(
+                "Vidéo déjà analysée",
+                (
+                    "Cette vidéo a déjà été analysée.\n\n"
+                    "Voulez-vous relancer l'analyse ?"
+                )
+            )
+
+            if not answer:
+
+                if baby_csv.exists():
+                    self.after(
+                        0,
+                        lambda: self.process_baby_data()
+                    )
+                    return
+                else:
+                    messagebox.showwarning(
+                        "CSV du bébé introuvable",
+                        (
+                            "La vidéo a déjà été analysée, "
+                            "mais le fichier CSV du bébé est introuvable.\n\n"
+                            "L'analyse YOLO va être relancée."
+                        )
+                    )
 
         if not MODEL_PATH.exists():
 
@@ -227,14 +277,26 @@ class PoseApp(TkinterDnD.Tk):
             )
 
             return
-
+        
         self.processing = True
 
-        self.select_button.config(state="disabled")
-        self.start_button.config(state="disabled")
+        self.select_button.config(
+            state="disabled"
+        )
+
+        self.start_button.config(
+            state="disabled"
+        )
+
         self.progress["value"] = 0
-        self.progress_label.config(text="0 %")
-        self.status_label.config(text="Analyse YOLO en cours...")
+
+        self.progress_label.config(
+            text="0 %"
+        )
+
+        self.status_label.config(
+            text="Analyse YOLO en cours..."
+        )
 
         thread = threading.Thread(
             target=self.run_processing,
@@ -315,13 +377,16 @@ class PoseApp(TkinterDnD.Tk):
             return
 
         # Ouvre la fenêtre de sélection des IDs
-        self.status_label.config(text="Sélectionnez maintenant les IDs du bébé.")
+        self.status_label.config(
+            text="Sélectionnez maintenant les IDs du bébé."
+        )
 
         IDSelectionWindow(
             self,
             annotated_video,
             all_csv,
-            output_dir
+            output_dir,
+            on_validate=self.process_baby_data
         )
 
     def processing_failed(self, error):
