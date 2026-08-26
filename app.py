@@ -8,7 +8,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from src.pose_processor import process_video, SUPPORTED_EXTENSIONS
 from src.id_selection_window import IDSelectionWindow
 from src.clean_data import clean_csv
-from src.visialize_clean import visualize
+from visualize_clean import visualize
 
 import os
 from dotenv import load_dotenv
