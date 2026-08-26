@@ -42,6 +42,7 @@ Une fois l'analyse terminée, les résultats sont enregistrés dans `results/`.
 
 Le fichier du modèle `yolo26x-pose.pt` doit être placé dans `models/`
 L'application utilise actuellement YOLO26 Pose pour détecter les 17 keypoints humains.
+Le chemin du modèle peut être modifié dans le dossier environnement en modifiant `MODEL_PATH`.
 
 ## 5. Marqueurs ArUco
 
