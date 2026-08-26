@@ -10,12 +10,22 @@ from src.id_selection_window import IDSelectionWindow
 from src.clean_data import clean_csv
 from src.visialize_clean import visualize
 
+import os
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 
 VIDEOS_DIR = BASE_DIR / "videos"
 RESULTS_DIR = BASE_DIR / "results"
-MODEL_PATH = BASE_DIR / "models" / "yolo26x-pose.pt"
+
+# Allow custom model path via .env file
+load_dotenv(BASE_DIR / ".env")
+MODEL_PATH = Path(
+    os.getenv(
+        "MODEL_PATH",
+        BASE_DIR / "models" / "yolo26x-pose.pt"
+    )
+)
 
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
