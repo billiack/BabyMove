@@ -3,3 +3,5 @@ opencv-python
 tkinterdnd2
 Pillow
 python-dotenv
+pandas
+spicy
