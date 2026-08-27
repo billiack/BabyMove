@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 import threading
 import subprocess
+import json
 import sys
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -13,10 +14,9 @@ from src.clean_data import clean_csv
 from src.visualize_clean import create_visualization
 
 import os
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-
+CONFIG_FILE = BASE_DIR / "config.json"
 VIDEOS_DIR = BASE_DIR / "videos"
 RESULTS_DIR = BASE_DIR / "results"
 
@@ -28,12 +28,22 @@ MODELS = {
     "YOLO26 XLarge": "yolo26x-pose.pt",
 }
 
-# Allow custom model path via .env file
-load_dotenv(BASE_DIR / ".env")
-MODELS_DIR = os.getenv("MODEL_DIR", BASE_DIR / "models")
-
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
+
+def load_config():
+    if not CONFIG_FILE.exists():
+        return {}
+
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+    
+def save_config(config):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=4)
 
 def show_video(video_path):
     video_path = Path(video_path).resolve()
@@ -57,21 +67,19 @@ class PoseApp(TkinterDnD.Tk):
 
         self.video_path = None
         self.processing = False
+        self.config = load_config()
+        self.model_dir = Path(self.config.get("model_dir", BASE_DIR / "models"))
 
         self.create_widgets()
 
     def create_widgets(self):
 
         # ========================================================
-        # Configuration de la fenêtre
+        # Configuration
         # ========================================================
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-
-        # ========================================================
-        # Conteneur principal
-        # ========================================================
 
         main_frame = tk.Frame(self)
 
@@ -79,14 +87,11 @@ class PoseApp(TkinterDnD.Tk):
             row=0,
             column=0,
             sticky="nsew",
-            padx=20,
+            padx=25,
             pady=15
         )
 
-        main_frame.grid_columnconfigure(
-            0,
-            weight=1
-        )
+        main_frame.grid_columnconfigure(0, weight=1)
 
         # ========================================================
         # Titre
@@ -95,13 +100,13 @@ class PoseApp(TkinterDnD.Tk):
         title = tk.Label(
             main_frame,
             text="Analyse de mouvements du nourrisson",
-            font=("Arial", 20, "bold")
+            font=("Arial", 18, "bold")
         )
 
         title.grid(
             row=0,
             column=0,
-            pady=(10, 5)
+            pady=(0, 3)
         )
 
         # ========================================================
@@ -111,13 +116,95 @@ class PoseApp(TkinterDnD.Tk):
         subtitle = tk.Label(
             main_frame,
             text="Sélectionnez une vidéo pour lancer l'analyse.",
-            font=("Arial", 11)
+            font=("Arial", 10)
         )
 
         subtitle.grid(
             row=1,
             column=0,
-            pady=(0, 15)
+            pady=(0, 8)
+        )
+
+        # ========================================================
+        # Configuration modèle
+        # ========================================================
+
+        model_frame = tk.Frame(main_frame)
+
+        model_frame.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            pady=(0, 8)
+        )
+
+        model_frame.grid_columnconfigure(1, weight=1)
+
+        tk.Label(
+            model_frame,
+            text="Dossier des modèles :"
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=(0, 8)
+        )
+
+        self.model_path_label = tk.Label(
+            model_frame,
+            text=str(self.model_dir),
+            anchor="w"
+        )
+
+        self.model_path_label.grid(
+            row=0,
+            column=1,
+            sticky="ew"
+        )
+
+        tk.Button(
+            model_frame,
+            text="Changer",
+            command=self.select_model_folder
+        ).grid(
+            row=0,
+            column=2,
+            padx=(8, 0)
+        )
+
+        # ========================================================
+        # Modèle YOLO
+        # ========================================================
+
+        model_select_frame = tk.Frame(main_frame)
+
+        model_select_frame.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            pady=(0, 8)
+        )
+
+        tk.Label(
+            model_select_frame,
+            text="Modèle YOLO :"
+        ).pack(side="left")
+
+        self.model_variable = tk.StringVar(
+            value="YOLO26 Small"
+        )
+
+        self.model_combobox = ttk.Combobox(
+            model_select_frame,
+            textvariable=self.model_variable,
+            values=list(MODELS.keys()),
+            state="readonly",
+            width=22
+        )
+
+        self.model_combobox.pack(
+            side="left",
+            padx=10
         )
 
         # ========================================================
@@ -126,19 +213,20 @@ class PoseApp(TkinterDnD.Tk):
 
         self.drop_zone = tk.Label(
             main_frame,
-            text="Glissez-déposez une vidéo ici",
+            text="Glissez-déposez une vidéo ici\n\n"
+                "ou cliquez pour sélectionner un fichier",
             relief="solid",
             borderwidth=2,
-            font=("Arial", 13)
+            font=("Arial", 11),
+            cursor="hand2"
         )
 
         self.drop_zone.grid(
-            row=2,
+            row=4,
             column=0,
             sticky="ew",
-            padx=30,
-            pady=10,
-            ipady=25
+            pady=8,
+            ipady=15
         )
 
         self.drop_zone.drop_target_register(DND_FILES)
@@ -154,6 +242,24 @@ class PoseApp(TkinterDnD.Tk):
         )
 
         # ========================================================
+        # Vidéo sélectionnée
+        # ========================================================
+
+        self.video_label = tk.Label(
+            main_frame,
+            text="Aucune vidéo sélectionnée",
+            font=("Arial", 9),
+            anchor="center"
+        )
+
+        self.video_label.grid(
+            row=5,
+            column=0,
+            sticky="ew",
+            pady=(3, 5)
+        )
+
+        # ========================================================
         # Bouton sélection vidéo
         # ========================================================
 
@@ -161,108 +267,56 @@ class PoseApp(TkinterDnD.Tk):
             main_frame,
             text="Sélectionner une vidéo",
             command=self.select_video,
-            width=25,
-            height=2
+            width=22,
+            height=1
         )
 
         self.select_button.grid(
-            row=3,
+            row=6,
             column=0,
-            pady=10
-        )
-
-        # ========================================================
-        # Vidéo sélectionnée
-        # ========================================================
-
-        self.video_label = tk.Label(
-            main_frame,
-            text="Aucune vidéo sélectionnée",
-            font=("Arial", 10),
-            anchor="center"
-        )
-
-        self.video_label.grid(
-            row=4,
-            column=0,
-            sticky="ew",
-            pady=10
-        )
-
-        # ========================================================
-        # Modèle YOLO
-        # ========================================================
-
-        tk.Label(
-            main_frame,
-            text="Modèle :"
-        ).grid(
-            row=5,
-            column=0,
-            sticky="w",
-            padx=5,
-            pady=5
-        )
-
-        self.model_variable = tk.StringVar(
-            value="YOLO26 Small"
-        )
-
-        self.model_combobox = ttk.Combobox(
-            main_frame,
-            textvariable=self.model_variable,
-            values=list(MODELS.keys()),
-            state="readonly"
-        )
-
-        self.model_combobox.grid(
-            row=5,
-            column=0,
-            sticky="e",
-            padx=5,
             pady=5
         )
 
         # ========================================================
         # Progression
         # ========================================================
-        
+
         progress_frame = tk.Frame(main_frame)
-        
+
         progress_frame.grid(
-            row=6,
+            row=7,
             column=0,
             sticky="ew",
-            pady=(15, 5)
+            pady=(8, 3)
         )
-        
+
         progress_frame.grid_columnconfigure(
             0,
             weight=1
         )
-        
+
         self.progress = ttk.Progressbar(
             progress_frame,
             orient="horizontal",
             mode="determinate"
         )
-        
+
         self.progress.grid(
             row=0,
             column=0,
             sticky="ew"
         )
-        
+
         self.progress_label = tk.Label(
             progress_frame,
             text="En attente",
-            font=("Arial", 10)
+            font=("Arial", 9)
         )
-        
+
         self.progress_label.grid(
             row=1,
             column=0,
-            pady=(5, 0)
+            pady=(2, 0)
         )
 
         # ========================================================
@@ -273,15 +327,15 @@ class PoseApp(TkinterDnD.Tk):
             main_frame,
             text="Lancer l'analyse",
             command=self.start_processing,
-            width=25,
-            height=2,
+            width=22,
+            height=1,
             state="disabled"
         )
 
         self.start_button.grid(
-            row=7,
+            row=8,
             column=0,
-            pady=15
+            pady=8
         )
 
         # ========================================================
@@ -291,13 +345,13 @@ class PoseApp(TkinterDnD.Tk):
         self.status_label = tk.Label(
             main_frame,
             text="",
-            font=("Arial", 12)
+            font=("Arial", 10)
         )
 
         self.status_label.grid(
-            row=8,
+            row=9,
             column=0,
-            pady=5
+            pady=(0, 2)
         )
 
     def is_valid_video(self, path):
@@ -354,6 +408,27 @@ class PoseApp(TkinterDnD.Tk):
 
         if path:
             self.set_video(path)
+
+    def select_model_folder(self):
+
+        folder = filedialog.askdirectory(
+            title="Sélectionner le dossier contenant les modèles YOLO"
+        )
+
+        if not folder:
+            return
+
+        self.model_dir = Path(folder)
+
+        self.model_path_label.config(
+            text=str(self.model_dir)
+        )
+
+        config = load_config()
+
+        config["model_dir"] = str(self.model_dir)
+
+        save_config(config)
 
     def start_processing(self):
 
@@ -454,7 +529,7 @@ class PoseApp(TkinterDnD.Tk):
             all_csv = process_video(
                 self.video_path,
                 results_dir=RESULTS_DIR,
-                model_path=Path(MODELS_DIR) / MODELS[self.model_variable.get()],
+                model_path= self.model_dir / MODELS[self.model_variable.get()],
                 progress_callback=self.update_progress
             )
 
