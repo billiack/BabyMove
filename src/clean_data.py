@@ -76,16 +76,20 @@ def clean_keypoint_trajectory(
     max_interpolation_gap=10
 ):
     """
-    Nettoie une trajectoire 1D :
-    1. supprime les points de faible confiance
-    2. interpole les petits trous
-    3. lisse les données valides
+    Nettoie et lisse une trajectoire 1D.
     """
 
-    values = np.asarray(
+    values = np.array(
         trajectory,
-        dtype=float
-    ).copy()
+        dtype=np.float64,
+        copy=True
+    )
+
+    confidence = np.array(
+        confidence,
+        dtype=np.float64,
+        copy=True
+    )
 
     # --------------------------------------------------------
     # 1. Faible confiance
@@ -105,7 +109,11 @@ def clean_keypoint_trajectory(
         limit_area="inside"
     )
 
-    values = series.to_numpy()
+    values = np.array(
+        series.to_numpy(),
+        dtype=np.float64,
+        copy=True
+    )
 
     # --------------------------------------------------------
     # 3. Vérification
@@ -113,57 +121,68 @@ def clean_keypoint_trajectory(
 
     valid = ~np.isnan(values)
 
-    # Pas assez de données pour filtrer
     if valid.sum() < 5:
         return values
-
-    # --------------------------------------------------------
-    # 4. Lissage
-    # --------------------------------------------------------
-
-    # On ne peut pas donner de NaN à savgol_filter.
-    # On ne filtre donc que les parties valides.
 
     first = np.where(valid)[0][0]
     last = np.where(valid)[0][-1]
 
-    segment = values[first:last + 1]
+    # IMPORTANT :
+    # on crée explicitement une copie writable
+    segment = np.array(
+        values[first:last + 1],
+        dtype=np.float64,
+        copy=True
+    )
 
-    # S'il reste des NaN à l'intérieur, on les interpole
-    segment = (
+    # --------------------------------------------------------
+    # 4. Interpolation des NaN restants
+    # --------------------------------------------------------
+
+    segment = np.array(
         pd.Series(segment)
         .interpolate(method="linear")
         .ffill()
         .bfill()
-        .to_numpy()
+        .to_numpy(),
+        dtype=np.float64,
+        copy=True
     )
 
-    # Nombre de points disponibles
     n = len(segment)
 
     if n < SMOOTHING_POLYORDER + 2:
         values[first:last + 1] = segment
         return values
 
-    # Fenêtre impaire
+    # --------------------------------------------------------
+    # 5. Fenêtre Savitzky-Golay
+    # --------------------------------------------------------
+
     window = min(
         SMOOTHING_WINDOW,
         n if n % 2 == 1 else n - 1
     )
 
-    # La fenêtre doit être > polyorder
     if window <= SMOOTHING_POLYORDER:
         values[first:last + 1] = segment
         return values
 
     # --------------------------------------------------------
-    # 5. Savitzky-Golay
+    # 6. Lissage
     # --------------------------------------------------------
 
     smoothed = savgol_filter(
         segment,
         window_length=window,
         polyorder=SMOOTHING_POLYORDER
+    )
+
+    # Force également une copie writable
+    smoothed = np.array(
+        smoothed,
+        dtype=np.float64,
+        copy=True
     )
 
     values[first:last + 1] = smoothed

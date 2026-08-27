@@ -15,10 +15,13 @@ from src.visualize_clean import create_visualization
 
 import os
 
-BASE_DIR = Path(__file__).resolve().parent
-CONFIG_FILE = BASE_DIR / "config.json"
-VIDEOS_DIR = BASE_DIR / "videos"
-RESULTS_DIR = BASE_DIR / "results"
+from src.paths import (
+    BASE_DIR,
+    VIDEOS_DIR,
+    RESULTS_DIR,
+    MODEL_DIR,
+    CONFIG_FILE
+)
 
 MODELS = {
     "YOLO26 Nano": "yolo26n-pose.pt",
@@ -30,6 +33,7 @@ MODELS = {
 
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
+MODEL_DIR.mkdir(exist_ok=True)
 
 def load_config():
     if not CONFIG_FILE.exists():

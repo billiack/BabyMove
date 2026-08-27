@@ -3,15 +3,15 @@ from pathlib import Path
 import cv2
 import pandas as pd
 
+from src.paths import (
+    VIDEOS_DIR,
+    RESULTS_DIR
+)
+
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-
-RESULTS_DIR = ROOT_DIR / "results"
-VIDEOS_DIR = ROOT_DIR / "videos"
 
 # Nom du fichier vidéo
 VIDEO_EXTENSION = ".mp4"
