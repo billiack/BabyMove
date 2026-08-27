@@ -4,4 +4,5 @@ tkinterdnd2
 Pillow
 python-dotenv
 pandas
-spicy
+scipy
+lap>=0.5.12
