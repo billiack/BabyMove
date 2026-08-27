@@ -18,14 +18,17 @@ BASE_DIR = Path(__file__).resolve().parent
 VIDEOS_DIR = BASE_DIR / "videos"
 RESULTS_DIR = BASE_DIR / "results"
 
+MODELS = {
+    "YOLO26 Nano": "yolo26n-pose.pt",
+    "YOLO26 Small": "yolo26s-pose.pt",
+    "YOLO26 Medium": "yolo26m-pose.pt",
+    "YOLO26 Large": "yolo26l-pose.pt",
+    "YOLO26 XLarge": "yolo26x-pose.pt",
+}
+
 # Allow custom model path via .env file
 load_dotenv(BASE_DIR / ".env")
-MODEL_PATH = Path(
-    os.getenv(
-        "MODEL_PATH",
-        BASE_DIR / "models" / "yolo26x-pose.pt"
-    )
-)
+MODELS_DIR = os.getenv("MODEL_DIR", BASE_DIR / "models")
 
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
@@ -145,6 +148,41 @@ class PoseApp(TkinterDnD.Tk):
         )
 
         self.progress_label.pack()
+
+        model_frame = tk.LabelFrame(
+            self,
+            text="Modèle YOLO",
+            padx=10,
+            pady=10
+        )
+
+        model_frame.pack(
+            fill="x",
+            padx=20,
+            pady=10
+        )
+
+        tk.Label(
+            model_frame,
+            text="Modèle :"
+        ).pack(side="left", padx=5)
+
+        self.model_variable = tk.StringVar(
+            value="YOLO26 Small"
+        )
+
+        self.model_combobox = ttk.Combobox(
+            model_frame,
+            textvariable=self.model_variable,
+            values=list(MODELS.keys()),
+            state="readonly",
+            width=25
+        )
+
+        self.model_combobox.pack(
+            side="left",
+            padx=5
+        )
 
         self.start_button = tk.Button(
             self,
@@ -275,18 +313,6 @@ class PoseApp(TkinterDnD.Tk):
                             "L'analyse YOLO va être relancée."
                         )
                     )
-
-        if not MODEL_PATH.exists():
-
-            messagebox.showerror(
-                "Modèle introuvable",
-                (
-                    "Le modèle YOLO est introuvable :\n\n"
-                    f"{MODEL_PATH}"
-                )
-            )
-
-            return
         
         self.processing = True
 
@@ -339,7 +365,7 @@ class PoseApp(TkinterDnD.Tk):
             all_csv = process_video(
                 self.video_path,
                 results_dir=RESULTS_DIR,
-                model_path=MODEL_PATH,
+                model_path=Path(MODELS_DIR) / MODELS[self.model_variable.get()],
                 progress_callback=self.update_progress
             )
 
