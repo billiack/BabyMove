@@ -175,7 +175,10 @@ def clean_keypoint_trajectory(
 # NETTOYAGE
 # ============================================================
 
-def clean_dataframe(df):
+def clean_dataframe(df, progress_callback=None):
+
+    if progress_callback is not None:
+        progress_callback(0)
 
     df = df.copy()
 
@@ -206,10 +209,14 @@ def clean_dataframe(df):
     # 2. Traitement personne par personne / keypoint
     # --------------------------------------------------------
 
-    for (person_id, keypoint), group in df.groupby(
+    grouped = df.groupby(
         ["person_id", "keypoint"],
         sort=False
-    ):
+    )
+
+    total_groups = grouped.ngroups
+
+    for group_index, ((person_id, keypoint), group) in enumerate(grouped):
 
         group = group.sort_values("frame")
 
@@ -239,7 +246,6 @@ def clean_dataframe(df):
                 dx ** 2 + dy ** 2
             )
 
-            # Estimation grossière de l'échelle du corps
             current_frame = df[
                 df["frame"] == group.iloc[i]["frame"]
             ]
@@ -260,7 +266,10 @@ def clean_dataframe(df):
 
                 idx = indices[i]
 
-                df.loc[idx, "is_outlier"] = True
+                df.loc[
+                    idx,
+                    "is_outlier"
+                ] = True
 
                 df.loc[
                     idx,
@@ -272,25 +281,52 @@ def clean_dataframe(df):
         # ----------------------------------------------------
 
         cleaned_x = clean_keypoint_trajectory(
-            df.loc[indices, "x_clean"].to_numpy(),
+            df.loc[
+                indices,
+                "x_clean"
+            ].to_numpy(),
             confidence
         )
 
         cleaned_y = clean_keypoint_trajectory(
-            df.loc[indices, "y_clean"].to_numpy(),
+            df.loc[
+                indices,
+                "y_clean"
+            ].to_numpy(),
             confidence
         )
 
-        df.loc[indices, "x_clean"] = cleaned_x
-        df.loc[indices, "y_clean"] = cleaned_y
+        df.loc[
+            indices,
+            "x_clean"
+        ] = cleaned_x
+
+        df.loc[
+            indices,
+            "y_clean"
+        ] = cleaned_y
+
+        # ----------------------------------------------------
+        # Progression
+        # ----------------------------------------------------
+
+        if progress_callback is not None:
+
+            progress = (
+                (group_index + 1)
+                / total_groups
+                * 100
+            )
+
+            progress_callback(progress)
 
     return df
 
-def clean_csv(input_csv):
+def clean_csv(input_csv, progress_callback=None):
 
     df = pd.read_csv(input_csv)
 
-    clean_df = clean_dataframe(df)
+    clean_df = clean_dataframe(df, progress_callback=progress_callback)
 
     output_csv = (
         Path(input_csv).parent /

@@ -573,11 +573,9 @@ class PoseApp(TkinterDnD.Tk):
                 )
             )
 
-            self.progress.config(mode="indeterminate")
-            self.progress.start(10)
-
             clean_csv(
-                baby_csv
+                baby_csv,
+                progress_callback=self.update_progress
             )
 
             self.after(
@@ -587,8 +585,14 @@ class PoseApp(TkinterDnD.Tk):
                 )
             )
 
+            self.after(
+                0,
+                lambda: self._update_progress(0)
+            )
+
             video_path = create_visualization(
                 input_folder=baby_csv.parent.name,
+                progress_callback=self.update_progress
             )
 
             self.progress.stop()

@@ -127,7 +127,10 @@ def draw_keypoints(frame, person_df):
 # VISUALISATION
 # ============================================================
 
-def create_visualization(input_folder):
+def create_visualization(input_folder, progress_callback=None):
+
+    if progress_callback is not None:
+        progress_callback(0)
 
     folder = RESULTS_DIR / input_folder
 
@@ -293,10 +296,11 @@ def create_visualization(input_folder):
 
         frame_number += 1
 
-        if frame_number % 100 == 0:
-            print(
-                f"{frame_number}/{total_frames}"
-            )
+        if frame_number % 10 == 0 or frame_number == total_frames:
+            if progress_callback is not None:
+                progress_callback(
+                    frame_number / total_frames * 100
+                )
 
     # --------------------------------------------------------
     # Nettoyage
