@@ -7,6 +7,10 @@ from tkinter import messagebox
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
+from src.paths import (
+    RESULTS_DIR
+)
+
 def get_ids_from_csv(csv_path):
     """Return all person IDs found in the CSV."""
 
@@ -72,17 +76,16 @@ class IDSelectionWindow(tk.Toplevel):
     def __init__(
         self,
         parent,
-        video_path,
+        output_folder,
         all_csv,
-        output_dir,
         on_validate=None
     ):
         super().__init__(parent)
 
         self.parent = parent
-        self.video_path = Path(video_path)
         self.all_csv = Path(all_csv)
-        self.output_dir = Path(output_dir)
+        self.output_dir = RESULTS_DIR / output_folder
+        self.video_path = self.output_dir / f"{output_folder}_annotated.mp4"
 
         self.title("Sélection du bébé")
         self.geometry("1100x800")
@@ -497,7 +500,7 @@ class IDSelectionWindow(tk.Toplevel):
 
         output_csv = (
             self.output_dir /
-            f"baby_{self.video_path.stem}.csv"
+            f"baby_{self.output_dir.name}.csv"
         )
 
         try:

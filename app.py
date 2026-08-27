@@ -615,9 +615,8 @@ class PoseApp(TkinterDnD.Tk):
 
         IDSelectionWindow(
             self,
-            annotated_video,
+            self.video_path.stem,
             all_csv,
-            output_dir,
             on_validate=self.process_baby_data
         )
 
