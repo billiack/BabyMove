@@ -286,11 +286,16 @@ def clean_dataframe(df):
 
     return df
 
-def clean_csv(input_csv, output_csv):
+def clean_csv(input_csv):
 
     df = pd.read_csv(input_csv)
 
     clean_df = clean_dataframe(df)
+
+    output_csv = (
+        Path(input_csv).parent /
+        f"{Path(input_csv).stem}_clean.csv"
+    )
 
     clean_df.to_csv(
         output_csv,
@@ -305,6 +310,8 @@ def clean_csv(input_csv, output_csv):
         f"Outliers detected: "
         f"{clean_df['is_outlier'].sum()}"
     )
+
+    return output_csv
 
 # ============================================================
 # MAIN

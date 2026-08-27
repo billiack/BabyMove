@@ -521,22 +521,11 @@ class IDSelectionWindow(tk.Toplevel):
         self.playing = False
         self.cap.release()
 
-        messagebox.showinfo(
-            "Analyse terminée",
-            (
-                f"IDs sélectionnés : "
-                f"{', '.join(map(str, selected_ids))}\n\n"
-                f"Résultat :\n"
-                f"{output_csv}"
-            ),
-            parent=self
-        )
-
         self.destroy()
 
         # Lance l'étape suivante uniquement après validation
         if self.on_validate is not None:
-            self.on_validate()
+            self.on_validate(output_csv)
 
     def close_window(self):
 

@@ -2,13 +2,15 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 import threading
+import subprocess
+import sys
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from src.pose_processor import process_video, SUPPORTED_EXTENSIONS
 from src.id_selection_window import IDSelectionWindow
 from src.clean_data import clean_csv
-from src.visualize_clean import visualize
+from src.visualize_clean import create_visualization
 
 import os
 from dotenv import load_dotenv
@@ -33,6 +35,16 @@ MODELS_DIR = os.getenv("MODEL_DIR", BASE_DIR / "models")
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 
+def show_video(video_path):
+    video_path = Path(video_path).resolve()
+
+    if sys.platform == "win32":
+        os.startfile(video_path)
+    elif sys.platform == "darwin":
+        subprocess.run(["open", str(video_path)])
+    else:
+        subprocess.run(["xdg-open", str(video_path)])
+
 class PoseApp(TkinterDnD.Tk):
 
     def __init__(self):
@@ -41,7 +53,7 @@ class PoseApp(TkinterDnD.Tk):
 
         self.title("Analyse de mouvements")
         self.geometry("700x500")
-        self.minsize(600, 450)
+        self.minsize(600, 500)
 
         self.video_path = None
         self.processing = False
@@ -49,39 +61,84 @@ class PoseApp(TkinterDnD.Tk):
         self.create_widgets()
 
     def create_widgets(self):
-        """
-        Crée les widgets de l'interface graphique.
-        """
+
+        # ========================================================
+        # Configuration de la fenêtre
+        # ========================================================
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # ========================================================
+        # Conteneur principal
+        # ========================================================
+
+        main_frame = tk.Frame(self)
+
+        main_frame.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=20,
+            pady=15
+        )
+
+        main_frame.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        # ========================================================
+        # Titre
+        # ========================================================
 
         title = tk.Label(
-            self,
+            main_frame,
             text="Analyse de mouvements du nourrisson",
             font=("Arial", 20, "bold")
         )
 
-        title.pack(pady=(25, 5))
+        title.grid(
+            row=0,
+            column=0,
+            pady=(10, 5)
+        )
+
+        # ========================================================
+        # Sous-titre
+        # ========================================================
 
         subtitle = tk.Label(
-            self,
+            main_frame,
             text="Sélectionnez une vidéo pour lancer l'analyse.",
             font=("Arial", 11)
         )
 
-        subtitle.pack(pady=(0, 20))
+        subtitle.grid(
+            row=1,
+            column=0,
+            pady=(0, 15)
+        )
+
+        # ========================================================
+        # Zone drag & drop
+        # ========================================================
 
         self.drop_zone = tk.Label(
-            self,
+            main_frame,
             text="Glissez-déposez une vidéo ici",
             relief="solid",
             borderwidth=2,
-            height=5,
             font=("Arial", 13)
         )
 
-        self.drop_zone.pack(
-            fill="x",
-            padx=50,
-            pady=10
+        self.drop_zone.grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=30,
+            pady=10,
+            ipady=25
         )
 
         self.drop_zone.drop_target_register(DND_FILES)
@@ -91,78 +148,129 @@ class PoseApp(TkinterDnD.Tk):
             self.on_drop
         )
 
+        self.drop_zone.bind(
+            "<Button-1>",
+            lambda event: self.select_video()
+        )
+
+        # ========================================================
+        # Bouton sélection vidéo
+        # ========================================================
+
         self.select_button = tk.Button(
-            self,
+            main_frame,
             text="Sélectionner une vidéo",
             command=self.select_video,
             width=25,
             height=2
         )
 
-        self.select_button.pack(pady=10)
+        self.select_button.grid(
+            row=3,
+            column=0,
+            pady=10
+        )
+
+        # ========================================================
+        # Vidéo sélectionnée
+        # ========================================================
 
         self.video_label = tk.Label(
-            self,
+            main_frame,
             text="Aucune vidéo sélectionnée",
-            font=("Arial", 10)
+            font=("Arial", 10),
+            anchor="center"
         )
 
-        self.video_label.pack(pady=10)
-
-        self.progress = ttk.Progressbar(
-            self,
-            orient="horizontal",
-            mode="determinate",
-            length=500
-        )
-
-        self.progress.pack(pady=(20, 5))
-
-        self.progress_label = tk.Label(
-            self,
-            text="En attente",
-            font=("Arial", 10)
-        )
-
-        self.progress_label.pack()
-
-        model_frame = tk.LabelFrame(
-            self,
-            text="Modèle YOLO",
-            padx=10,
+        self.video_label.grid(
+            row=4,
+            column=0,
+            sticky="ew",
             pady=10
         )
 
-        model_frame.pack(
-            fill="x",
-            padx=20,
-            pady=10
-        )
+        # ========================================================
+        # Modèle YOLO
+        # ========================================================
 
         tk.Label(
-            model_frame,
+            main_frame,
             text="Modèle :"
-        ).pack(side="left", padx=5)
+        ).grid(
+            row=5,
+            column=0,
+            sticky="w",
+            padx=5,
+            pady=5
+        )
 
         self.model_variable = tk.StringVar(
             value="YOLO26 Small"
         )
 
         self.model_combobox = ttk.Combobox(
-            model_frame,
+            main_frame,
             textvariable=self.model_variable,
             values=list(MODELS.keys()),
-            state="readonly",
-            width=25
+            state="readonly"
         )
 
-        self.model_combobox.pack(
-            side="left",
-            padx=5
+        self.model_combobox.grid(
+            row=5,
+            column=0,
+            sticky="e",
+            padx=5,
+            pady=5
         )
+
+        # ========================================================
+        # Progression
+        # ========================================================
+        
+        progress_frame = tk.Frame(main_frame)
+        
+        progress_frame.grid(
+            row=6,
+            column=0,
+            sticky="ew",
+            pady=(15, 5)
+        )
+        
+        progress_frame.grid_columnconfigure(
+            0,
+            weight=1
+        )
+        
+        self.progress = ttk.Progressbar(
+            progress_frame,
+            orient="horizontal",
+            mode="determinate"
+        )
+        
+        self.progress.grid(
+            row=0,
+            column=0,
+            sticky="ew"
+        )
+        
+        self.progress_label = tk.Label(
+            progress_frame,
+            text="En attente",
+            font=("Arial", 10)
+        )
+        
+        self.progress_label.grid(
+            row=1,
+            column=0,
+            pady=(5, 0)
+        )
+
+        # ========================================================
+        # Bouton lancement
+        # ========================================================
 
         self.start_button = tk.Button(
-            self,
+            main_frame,
             text="Lancer l'analyse",
             command=self.start_processing,
             width=25,
@@ -170,15 +278,27 @@ class PoseApp(TkinterDnD.Tk):
             state="disabled"
         )
 
-        self.start_button.pack(pady=20)
-
-        self.status_label = tk.Label(
-            self,
-            text="",
-            font=("Arial", 10)
+        self.start_button.grid(
+            row=7,
+            column=0,
+            pady=15
         )
 
-        self.status_label.pack(pady=5)
+        # ========================================================
+        # Status
+        # ========================================================
+
+        self.status_label = tk.Label(
+            main_frame,
+            text="",
+            font=("Arial", 12)
+        )
+
+        self.status_label.grid(
+            row=8,
+            column=0,
+            pady=5
+        )
 
     def is_valid_video(self, path):
 
@@ -235,23 +355,6 @@ class PoseApp(TkinterDnD.Tk):
         if path:
             self.set_video(path)
 
-    def process_baby_data(self):
-
-        working_dir = RESULTS_DIR / self.video_path.stem
-
-        baby_csv_path = working_dir / f"baby_{self.video_path.stem}.csv"
-        clean_csv_path = working_dir / f"baby_{self.video_path.stem}_clean.csv"
-
-        clean_csv(
-            baby_csv_path,
-            clean_csv_path
-        )
-
-        visualize(
-            self.video_path.stem,
-            show_video=True
-        )
-
     def start_processing(self):
 
         if self.video_path is None:
@@ -275,10 +378,19 @@ class PoseApp(TkinterDnD.Tk):
 
             if not answer:
 
+                video_path = output_dir / f"visualization_{self.video_path.stem}.avi"
+
+                if video_path.exists():
+                    self.after(
+                        0,
+                        lambda: show_video(video_path)
+                    )
+                    return
+                
                 if baby_csv.exists():
                     self.after(
                         0,
-                        lambda: self.process_baby_data()
+                        lambda: self.process_baby_data(baby_csv)
                     )
                     return
                 else:
@@ -356,7 +468,7 @@ class PoseApp(TkinterDnD.Tk):
 
             self.after(
                 0,
-                lambda: self.processing_failed(
+                lambda error=error: self.processing_failed(
                     error
                 )
             )
@@ -429,6 +541,77 @@ class PoseApp(TkinterDnD.Tk):
             output_dir,
             on_validate=self.process_baby_data
         )
+
+    def process_baby_data(self, baby_csv):
+        """
+        Nettoie les données et génère la vidéo de visualisation.
+        """
+
+        self.status_label.config(
+            text="Traitement des données en cours..."
+        )
+
+        self.start_button.config(state="disabled")
+        self.select_button.config(state="disabled")
+
+        thread = threading.Thread(
+            target=self._run_baby_processing,
+            args=(baby_csv,),
+            daemon=True
+        )
+
+        thread.start()
+
+    def _run_baby_processing(self, baby_csv):
+
+        try:
+
+            self.after(
+                0,
+                lambda: self.status_label.config(
+                    text="Nettoyage des données..."
+                )
+            )
+
+            self.progress.config(mode="indeterminate")
+            self.progress.start(10)
+
+            clean_csv(
+                baby_csv
+            )
+
+            self.after(
+                0,
+                lambda: self.status_label.config(
+                    text="Génération de la vidéo..."
+                )
+            )
+
+            video_path = create_visualization(
+                input_folder=baby_csv.parent.name,
+            )
+
+            self.progress.stop()
+            self.progress.config(
+                mode="determinate",
+                value=100
+            )
+
+            self.after(
+                0,
+                lambda: show_video(
+                    video_path
+                )
+            )
+
+        except Exception as error:
+
+            self.after(
+                0,
+                lambda error=error: self.processing_failed(
+                    error
+                )
+            )
 
     def processing_failed(self, error):
         """

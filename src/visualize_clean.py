@@ -1,5 +1,3 @@
-# visualize_clean.py
-
 from pathlib import Path
 
 import cv2
@@ -129,7 +127,7 @@ def draw_keypoints(frame, person_df):
 # VISUALISATION
 # ============================================================
 
-def visualize(input_folder, show_video=False):
+def create_visualization(input_folder):
 
     folder = RESULTS_DIR / input_folder
 
@@ -161,10 +159,6 @@ def visualize(input_folder, show_video=False):
         raise FileNotFoundError(
             f"Video not found:\n{video_path}"
         )
-
-    print(f"CSV    : {csv_path}")
-    print(f"Video  : {video_path}")
-    print(f"Output : {output_path}")
 
     # --------------------------------------------------------
     # CSV
@@ -292,13 +286,6 @@ def visualize(input_folder, show_video=False):
 
         writer.write(frame)
 
-        # Affichage temps réel
-        if show_video:
-            cv2.imshow(
-                "Clean keypoints",
-                frame
-            )
-
         key = cv2.waitKey(1)
 
         if key == 27:  # ESC
@@ -324,6 +311,7 @@ def visualize(input_folder, show_video=False):
         f"Visualization saved to:\n{output_path}"
     )
 
+    return output_path
 
 # ============================================================
 # MAIN
@@ -340,15 +328,27 @@ if __name__ == "__main__":
     )
 
     if not clean_csv_path.exists():
-        from src.clean_data import clean_dataframe
+        from src.clean_data import clean_csv
+
         input_csv_path = (
             RESULTS_DIR /
             FOLDER /
             f"baby_{FOLDER}.csv"
         )
-        df = pd.read_csv(input_csv_path)
-        clean_df = clean_dataframe(df)
-        clean_df.to_csv(clean_csv_path, index=False)
 
+        print(f"Cleaning data: {input_csv_path}")
+        clean_csv(input_csv_path)
 
-    visualize(FOLDER, show_video=True)
+    print(f"Visualizing: {clean_csv_path}")
+    video_path = create_visualization(FOLDER)
+
+    # Show the video
+    cap = cv2.VideoCapture(str(video_path))
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        cv2.imshow("Video", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
