@@ -45,6 +45,8 @@ def process_video(
     results_dir = Path(results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
 
+    video_name = video_path.stem
+
     # Nombre total de frames
     cap = cv2.VideoCapture(str(video_path))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -53,13 +55,13 @@ def process_video(
     model = YOLO(model_path)
     model.to(DEVICE)
     
-    output_dir = results_dir / video_path.stem
+    output_dir = results_dir / video_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_dir = results_dir / video_path.stem
+    output_dir = results_dir / video_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_csv = output_dir / f"{video_path.stem}.csv"
+    output_csv = output_dir / f"{video_name}.csv"
 
     # stream=True = résultats fournis frame par frame
     results = model.track(
@@ -69,7 +71,7 @@ def process_video(
         verbose=False,
         stream=True,
         project=str(results_dir),
-        name=video_path.stem,
+        name=video_name,
         exist_ok=True
     )
 

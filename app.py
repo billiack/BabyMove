@@ -69,7 +69,11 @@ class PoseApp(TkinterDnD.Tk):
         self.geometry("700x500")
         self.minsize(600, 500)
 
+        self.video_name = None
         self.video_path = None
+
+        self.output_dir = None
+
         self.processing = False
         self.config = load_config()
         self.model_dir = Path(self.config.get("model_dir", BASE_DIR / "models"))
@@ -382,7 +386,11 @@ class PoseApp(TkinterDnD.Tk):
             return
 
         self.video_path = path
-        self.video_label.config(text=f"Vidéo sélectionnée : {path.name}")
+        self.video_name = path.stem
+
+        self.output_dir = RESULTS_DIR / self.video_name
+
+        self.video_label.config(text=f"Vidéo sélectionnée : {self.video_name}")
         self.start_button.config(state="normal")
         self.status_label.config(text="Vidéo prête à être analysée.")
 
@@ -442,10 +450,9 @@ class PoseApp(TkinterDnD.Tk):
         if self.processing:
             return
 
-        output_dir = RESULTS_DIR / self.video_path.stem
-        baby_csv = output_dir / f"baby_{self.video_path.stem}.csv"
+        baby_csv = self.output_dir / f"baby_{self.video_name}.csv"
 
-        if output_dir.exists():
+        if self.output_dir.exists():
 
             answer = messagebox.askyesno(
                 "Vidéo déjà analysée",
@@ -457,7 +464,7 @@ class PoseApp(TkinterDnD.Tk):
 
             if not answer:
 
-                video_path = output_dir / f"visualization_{self.video_path.stem}.avi"
+                video_path = self.output_dir / f"visualization_{self.video_name}.avi"
 
                 if video_path.exists():
                     self.after(
@@ -564,15 +571,13 @@ class PoseApp(TkinterDnD.Tk):
         self.progress_label.config(text="100 %")
         self.status_label.config(text="Analyse YOLO terminée.")
 
-        output_dir = RESULTS_DIR / self.video_path.stem
-
         # Vidéo générée par YOLO
-        generated_video = output_dir / f"{self.video_path.stem}.avi"
+        generated_video = self.output_dir / f"{self.video_name}.avi"
 
         # Nouveau nom
         output_video = (
-            output_dir /
-            f"{self.video_path.stem}_annotated.avi"
+            self.output_dir /
+            f"{self.video_name}.avi"
         )
 
         # Vérifier que la vidéo existe
@@ -593,8 +598,6 @@ class PoseApp(TkinterDnD.Tk):
 
         # Renommer la vidéo
         try:
-            if output_video.exists():
-                os.unlink(output_video)
             generated_video.rename(output_video)
 
         except OSError as error:
@@ -608,8 +611,6 @@ class PoseApp(TkinterDnD.Tk):
 
             return
 
-        annotated_video = output_video
-
         # Ouvre la fenêtre de sélection des IDs
         self.status_label.config(
             text="Sélectionnez maintenant les IDs du bébé."
@@ -617,7 +618,7 @@ class PoseApp(TkinterDnD.Tk):
 
         IDSelectionWindow(
             self,
-            self.video_path.stem,
+            self.video_name,
             all_csv,
             on_validate=self.process_baby_data
         )
@@ -665,11 +666,6 @@ class PoseApp(TkinterDnD.Tk):
                 )
             )
 
-            self.after(
-                0,
-                lambda: self._update_progress(0)
-            )
-
             video_path = create_visualization(
                 input_folder=baby_csv.parent.name,
                 progress_callback=self.update_progress
@@ -680,6 +676,13 @@ class PoseApp(TkinterDnD.Tk):
                 mode="determinate",
                 value=100
             )
+
+            # Supprimer les fichiers intermédiaires
+            files = [self.output_dir.glob(f"{self.video_name}.csv"), self.output_dir.glob(f"{self.video_name}.avi"), self.output_dir.glob(f"baby_{self.video_name}.csv")]
+
+            for file in files:
+                for f in file:
+                    f.unlink()
 
             self.after(
                 0,
