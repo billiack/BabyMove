@@ -1,5 +1,6 @@
 from pathlib import Path
 import csv
+import torch
 from ultralytics import YOLO
 import cv2
 
@@ -32,6 +33,8 @@ MODEL_PATH = PROJECT_DIR / "models" / "yolo26x-pose.pt"
 RESULTS_DIR = PROJECT_DIR / "results"
 VIDEOS_DIR = PROJECT_DIR / "videos"
 
+DEVICE = 0 if torch.cuda.is_available() else "cpu"
+
 def process_video(
     video_path,
     results_dir=RESULTS_DIR,
@@ -48,14 +51,15 @@ def process_video(
     cap.release()
 
     model = YOLO(model_path)
- 
+    model.to(DEVICE)
+    
     output_dir = results_dir / video_path.stem
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_dir = results_dir / video_path.stem
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_csv = output_dir / f"all_{video_path.stem}.csv"
+    output_csv = output_dir / f"{video_path.stem}.csv"
 
     # stream=True = résultats fournis frame par frame
     results = model.track(
