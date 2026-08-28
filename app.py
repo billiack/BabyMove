@@ -567,12 +567,12 @@ class PoseApp(TkinterDnD.Tk):
         output_dir = RESULTS_DIR / self.video_path.stem
 
         # Vidéo générée par YOLO
-        generated_video = output_dir / f"{self.video_path.stem}.mp4"
+        generated_video = output_dir / f"{self.video_path.stem}.avi"
 
         # Nouveau nom
         output_video = (
             output_dir /
-            f"{self.video_path.stem}_annotated.mp4"
+            f"{self.video_path.stem}_annotated.avi"
         )
 
         # Vérifier que la vidéo existe
@@ -593,6 +593,8 @@ class PoseApp(TkinterDnD.Tk):
 
         # Renommer la vidéo
         try:
+            if output_video.exists():
+                os.unlink(output_video)
             generated_video.rename(output_video)
 
         except OSError as error:
